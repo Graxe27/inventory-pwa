@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Inventory Manager with History Log</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0b2545;
+    color: #f0f0f0;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    color: #ff6f00;
+    margin-bottom: 20px;
+    text-shadow: 1px 1px 2px #a33a3a;
+  }
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: #12305a;
+    border-radius: 12px;
+    padding: 20px 30px;
+    box-shadow: 0 0 15px rgba(255,111,0,0.5);
+  }
+  input, select, button {
+    padding: 10px 12px;
+    margin: 6px 0;
+    border-radius: 6px;
+    border: none;
+    font-size: 15px;
+  }
+  input, select {
+    width: calc(100% - 24px);
+  }
+  button {
+    background: #ff6f00;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background: #ff9000;
+  }
+
+  /* Inventory grid landscape style */
+  #inventoryList {
+    margin-top: 25px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+  }
+  .product-card {
+    background: #1a3c72;
+    border-radius: 10px;
+    padding: 15px 20px;
+    box-shadow: 0 2px 6px rgba(255,111,0,0.3);
+  }
+  .product-title {
+    font-size: 1.3em;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #ff6f00;
+    text-shadow: 1px 1px 3px #720000;
+  }
+  .sizes {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .size-box {
+    background: #245a96;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #f0f0f0;
+    min-width: 50px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .low-stock {
+    background: #b43030 !important;
+    box-shadow: 0 0 8px #ff3b3b !important;
+    color: #fff !important;
+  }
+  .input-group {
+    margin-bottom: 15px;
+  }
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #ffb347;
+  }
+  #search {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    box-shadow: 0 0 10px rgba(255,111,0,0.3);
+    margin-bottom: 20px;
+  }
+  #newProductPreview {
+    font-weight: 700;
+    color: #ff6f00;
+    margin-top: 6px;
+    text-shadow: 1px 1px 2px #720000;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #ff6f00cc;
+    margin: 25px 0;
+  }
+
+  /* History section styling */
+  #historySection {
+    margin-top: 30px;
+    background: #1c2f56;
+    border-radius: 10px;
+    padding: 15px 20px;
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0 0 15px rgba(255,111,0,0.4);
+  }
+  #historySection h2 {
+    color: #ff6f00;
+    margin-bottom: 12px;
+    text-shadow: 1px 1px 2px #720000;
+  }
+  .history-entry {
+    border-bottom: 1px solid #ff6f00aa;
+    padding: 8px 0;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .history-entry:last-child {
+    border-bottom: none;
+  }
+  .history-date {
+    font-weight: 700;
+    color: #ffb347;
+  }
+  .history-action-add {
+    color: #55ff55;
+    font-weight: 700;
+  }
+  .history-action-remove {
+    color: #ff5555;
+    font-weight: 700;
+  }
+
+  /* Autocomplete dropdown */
+  .autocomplete-suggestions {
+    border: 1px solid #ff6f00aa;
+    background: #12305a;
+    border-radius: 6px;
+    max-height: 150px;
+    overflow-y: auto;
+    position: absolute;
+    z-index: 9999;
+    width: calc(100% - 24px);
+  }
+  .autocomplete-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .autocomplete-suggestion:hover {
+    background: #245a96;
+  }
+</style>
+</head>
+<body>
+
+<h1>📦STOCK INVENTORY 📦</h1>
+
+<div class="container">
+
+  <!-- Add New Product Section -->
+  <h2 style="color:#ff6f00; margin-bottom: 10px;">Add New Product</h2>
+  <div class="input-group">
+    <label for="newProductName">Product Name</label>
+    <input type="text" id="newProductName" placeholder="Type new product name..." autocomplete="off" />
+    <div id="newProductPreview"></div>
+  </div>
+  <button id="addNewProductBtn">Add New Product</button>
+
+  <hr>
+
+  <!-- Existing Inventory Update -->
+  <div class="input-group" style="position:relative;">
+    <label for="productName">Product Name</label>
+    <input type="text" id="productName" placeholder="Enter product name..." autocomplete="off" />
+    <div id="productSuggestions" class="autocomplete-suggestions"></div>
+  </div>
+
+  <div class="input-group">
+    <label for="sizeSelect">Select Size</label>
+    <select id="sizeSelect">
+      <option value="30">30</option>
+      <option value="32">32</option>
+      <option value="34">34</option>
+      <option value="36">36</option>
+      <option value="38">38</option>
+    </select>
+  </div>
+
+  <div class="input-group">
+    <label for="actionSelect">Action</label>
+    <select id="actionSelect">
+      <option value="add">Add to Inventory</option>
+      <option value="remove">Remove from Inventory</option>
+    </select>
+  </div>
+
+  <div class="input-group">
+    <label for="quantity">Quantity</label>
+    <input type="number" id="quantity" placeholder="Enter quantity" min="1" />
+  </div>
+
+  <button id="updateStockBtn">SUBMIT</button>
+
+  <input type="text" id="search" placeholder="🔍 Search products..." autocomplete="off" />
+
+  <div id="inventoryList"></div>
+
+  <!-- History Log -->
+  <div id="historySection">
+    <h2>📜 Inventory Change History</h2>
+    <div id="historyList"></div>
+  </div>
+
+</div>
+
+<script>
+  const defaultSizes = ["30", "32", "34", "36", "38"];
+  const defaultStock = 0;
+
+  let inventory = JSON.parse(localStorage.getItem("inventory")) || {
+    "AMERICAN EAGLE": createDefaultSizes(),
+    "CK": createDefaultSizes(),
+    "HUGO BOSS": createDefaultSizes(),
+    "CARGO": createDefaultSizes(),
+    "DENIM": createDefaultSizes(),
+    "LEVIS": createDefaultSizes(),
+    "TWILL": createDefaultSizes(),
+    "GABERDINE": createDefaultSizes(),
+  };
+
+  let historyLog = JSON.parse(localStorage.getItem("inventoryHistory")) || [];
+
+  function createDefaultSizes() {
+    let obj = {};
+    defaultSizes.forEach(size => obj[size] = defaultStock);
+    return obj;
+  }
+
+  function saveInventory() {
+    localStorage.setItem("inventory", JSON.stringify(inventory));
+  }
+  function saveHistory() {
+    localStorage.setItem("inventoryHistory", JSON.stringify(historyLog));
+  }
+
+  function renderInventory() {
+    const list = document.getElementById("inventoryList");
+    list.innerHTML = "";
+    const searchTerm = document.getElementById("search").value.toLowerCase();
+
+    Object.keys(inventory)
+      .filter(product => product.toLowerCase().includes(searchTerm))
+      .sort()
+      .forEach(product => {
+        const productDiv = document.createElement("div");
+        productDiv.className = "product-card";
+
+        const totalQty = Object.values(inventory[product]).reduce((a, b) => a + b, 0);
+
+        const title = document.createElement("div");
+        title.className = "product-title";
+        title.textContent = `${product} (Total: ${totalQty})`;
+        productDiv.appendChild(title);
+
+        const sizesDiv = document.createElement("div");
+        sizesDiv.className = "sizes";
+
+        defaultSizes.forEach(size => {
+          const qty = inventory[product][size] ?? 0;
+          const sizeBox = document.createElement("div");
+          sizeBox.className = "size-box";
+          if (qty <= 5) sizeBox.classList.add("low-stock");
+          sizeBox.textContent = `${size}: ${qty}`;
+          sizesDiv.appendChild(sizeBox);
+        });
+
+        productDiv.appendChild(sizesDiv);
+        list.appendChild(productDiv);
+      });
+  }
+
+  function renderHistory() {
+    const historyList = document.getElementById("historyList");
+    historyList.innerHTML = "";
+    if (historyLog.length === 0) {
+      historyList.innerHTML = "<p>No inventory changes recorded yet.</p>";
+      return;
+    }
+    [...historyLog].reverse().forEach(entry => {
+      const entryDiv = document.createElement("div");
+      entryDiv.className = "history-entry";
+      const dateStr = new Date(entry.timestamp).toLocaleString();
+      entryDiv.innerHTML = `<span class="history-date">${dateStr}</span> — 
+        <span>${entry.product} | Size: ${entry.size} | </span>
+        <span class="history-action-${entry.action}">${entry.action.toUpperCase()}</span> 
+        <span> ${entry.quantity} pcs. </span>
+        <span>| New Stock: ${entry.newStock}</span>`;
+      historyList.appendChild(entryDiv);
+    });
+  }
+
+  function addNewProduct() {
+    let input = document.getElementById("newProductName");
+    let name = input.value.trim().toUpperCase();
+    if (!name) {
+      alert("Please enter a product name.");
+      return;
+    }
+    if (inventory[name]) {
+      alert("Product already exists.");
+      return;
+    }
+    inventory[name] = {};
+    defaultSizes.forEach(size => inventory[name][size] = 0);
+    saveInventory();
+    renderInventory();
+    input.value = "";
+    document.getElementById("newProductPreview").textContent = "";
+  }
+
+  document.getElementById("newProductName").addEventListener("input", (e) => {
+    document.getElementById("newProductPreview").textContent = e.target.value.trim();
+  });
+
+  function updateInventory() {
+    let nameInput = document.getElementById("productName");
+    let sizeSelect = document.getElementById("sizeSelect");
+    let actionSelect = document.getElementById("actionSelect");
+    let qtyInput = document.getElementById("quantity");
+
+    let name = nameInput.value.trim().toUpperCase();
+    let size = sizeSelect.value;
+    let action = actionSelect.value;
+    let qty = parseInt(qtyInput.value);
+
+    if (!name) { alert("Please enter a product name."); return; }
+    if (!size) { alert("Please select a size."); return; }
+    if (isNaN(qty) || qty <= 0) { alert("Please enter a valid quantity."); return; }
+    if (!inventory[name]) { alert("Product not found. Please add it first using 'Add New Product'."); return; }
+
+    if (action === "add") {
+      inventory[name][size] = (inventory[name][size] || 0) + qty;
+    } else if (action === "remove") {
+      if ((inventory[name][size] || 0) < qty) {
+        alert(`Cannot remove ${qty} pieces. Only ${inventory[name][size] || 0} available in size ${size}.`);
+        return;
+      }
+      inventory[name][size] -= qty;
+    }
+
+    historyLog.push({
+      timestamp: new Date().toISOString(),
+      product: name,
+      size: size,
+      action: action,
+      quantity: qty,
+      newStock: inventory[name][size]
+    });
+
+    saveInventory();
+    saveHistory();
+    renderInventory();
+    renderHistory();
+
+    nameInput.value = "";
+    qtyInput.value = "";
+    sizeSelect.value = "28";
+    document.getElementById("productSuggestions").innerHTML = "";
+  }
+
+  // Autocomplete for product names
+  const productInput = document.getElementById("productName");
+  const suggestionsDiv = document.getElementById("productSuggestions");
+
+  productInput.addEventListener("input", () => {
+    let val = productInput.value.trim().toUpperCase();
+    suggestionsDiv.innerHTML = "";
+    if (!val) return;
+
+    let matches = Object.keys(inventory).filter(p => p.startsWith(val));
+    matches.forEach(match => {
+      let div = document.createElement("div");
+      div.className = "autocomplete-suggestion";
+      div.textContent = match;
+      div.onclick = () => {
+        productInput.value = match;
+        suggestionsDiv.innerHTML = "";
+      };
+      suggestionsDiv.appendChild(div);
+    });
+  });
+
+  document.getElementById("addNewProductBtn").addEventListener("click", addNewProduct);
+  document.getElementById("updateStockBtn").addEventListener("click", updateInventory);
+  document.getElementById("search").addEventListener("input", renderInventory);
+
+  ["newProductName", "productName", "sizeSelect", "quantity", "actionSelect"].forEach(id => {
+    document.getElementById(id).addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        if (id === "newProductName") addNewProduct();
+        else updateInventory();
+      }
+    });
+  });
+
+  renderInventory();
+  renderHistory();
+</script>
+
+</body>
+</html>

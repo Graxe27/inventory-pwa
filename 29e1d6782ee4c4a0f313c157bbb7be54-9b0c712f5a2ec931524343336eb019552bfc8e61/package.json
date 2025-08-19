@@ -1,0 +1,16 @@
+{
+  "name": "upbeat-songs-win-ktazi",
+  "productName": "upbeat-songs-win-ktazi",
+  "description": "My Electron application description",
+  "keywords": [],
+  "main": "./main.js",
+  "version": "1.0.0",
+  "author": "Asrock",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "37.2.5"
+  }
+}
